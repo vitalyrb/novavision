@@ -1,0 +1,154 @@
+#include "core.hpp"
+
+#include <opencv2/opencv.hpp>
+
+#include <catch2/catch.hpp>
+
+#include <iostream>
+#include <cmath>
+
+
+
+TEST_CASE("class Sequence default constructor.", "[core]"){
+    nv::Sequence sequence;
+    REQUIRE(0 == sequence.size());
+}
+
+TEST_CASE("class Sequence initialize_list.", "[core]"){
+    nv::Sequence sequence{{0,0}, {1,1}, {2,2}, {3,3}};
+    REQUIRE(4 == sequence.size());
+    REQUIRE(sequence.at(1) == cv::Point{1,1});
+}
+
+TEST_CASE("class Descriptor constructor.", "[core]"){
+    nv::Sequence sequence{{0,0}, {1,1}, {2,2}, {3,3}};
+    auto m = cv::imread("../resources/Lenna.png");
+    REQUIRE(!m.empty());
+    std::vector<uint8_t> check_list{137, 226, 103, 137};
+    nv::Descriptor descriptor(m, sequence, cv::Point{10, 10});
+
+    size_t i = 0;
+    for(auto const& val: descriptor.values())
+    {
+        REQUIRE(check_list[i] == val);
+        REQUIRE(sequence.at(i) == descriptor.sequence().at(i));
+        ++i;
+    }
+}
+
+
+
+TEST_CASE("class Metric test.", "[core]")
+{
+    auto lm = cv::imread("../resources/moto/im0.png");
+    REQUIRE(!lm.empty());
+    auto rm = lm.clone();//cv::imread("../resources/moto/im1.png");
+    REQUIRE(!rm.empty());
+    nv::Sequence sequence{{0,0}, {1,1}, {2,2}, {3,3}, {4, 4}, {5, 5}, {6, 6}, {7, 7}};
+    nv::Descriptor ld(lm, sequence, {lm.cols/2, lm.rows/2});
+    nv::Descriptor rd(rm, ld.sequence(), {rm.cols/2, rm.rows/2});
+    nv::Metric m(0.99f, ld, rd);
+
+    REQUIRE(m);
+    REQUIRE(equal(m.coefficient(), 1.));
+}
+
+TEST_CASE("class CorrelationMetric[1] test.", "[core]")
+{
+    auto lm = cv::imread("../resources/moto/im0.png");
+    REQUIRE(!lm.empty());
+    auto rm = lm.clone();//cv::imread("../resources/moto/im1.png");
+    REQUIRE(!rm.empty());
+    nv::Sequence sequence{{0,0}, {1,1}, {2,2}, {3,3}, {4, 4}, {5, 5}, {6, 6}, {7, 7}};
+    nv::Descriptor ld(lm, sequence, {lm.cols/2, lm.rows/2});
+    nv::Descriptor rd(rm, ld.sequence(), {lm.cols/2, lm.rows/2});
+    nv::CorrelationMetric m(0.99f, ld, rd);
+
+    REQUIRE(equal(m.coefficient(), 1.));
+}
+
+TEST_CASE("class CorrelationMetric[.9] test.", "[core]")
+{
+    auto lm = cv::imread("../resources/moto/im0.png");
+    REQUIRE(!lm.empty());
+    auto rm = cv::imread("../resources/moto/im1.png");
+    REQUIRE(!rm.empty());
+    nv::Sequence sequence{{0,0}, {10,10}, {10,-10}, {-10,10}, {-10, -10}, {25,25}, {25,-25}, {-25,25}, {-25, -25}};
+    nv::Descriptor ld(lm, sequence, {1464, 1333});//{lm.cols/2, lm.rows/2});
+    nv::Descriptor rd(rm, ld.sequence(), {1260, 1333});//{lm.cols/2 + 100, lm.rows/2});
+    nv::CorrelationMetric m(0.99f, ld, rd);
+
+    std::cout << "CORRELATION: " <<  m.coefficient() << std::endl;
+
+    REQUIRE(m.coefficient() < static_cast<float>(-0.9));
+}
+
+TEST_CASE("class FibonacciSequence test.", "[core]")
+{
+    auto lm = cv::imread("../resources/moto/im0.png", 0);
+    REQUIRE(!lm.empty());
+    auto rm = cv::imread("../resources/moto/im1.png", 0);
+    REQUIRE(!rm.empty());
+    nv::FibonacciSequence sequence(32, 50, 0.5);
+    nv::Descriptor ld(lm, sequence, {1464, 1333});
+    nv::Descriptor rd(rm, ld.sequence(), {1260, 1333});
+    nv::CorrelationMetric m(0.99f, ld, rd);
+
+    std::cout << "FIBONACCI: " <<  m.coefficient() << std::endl;
+
+    REQUIRE(m.coefficient() < static_cast<float>(-0.9));
+}
+
+
+TEST_CASE("class CorrelationMetric, FibonacciSequence test.", "[core]")
+{
+    auto im = cv::imread("../resources/Lenna.png", 0);
+    nv::FibonacciSequence sequence(30, 100, 0.5);
+    nv::Descriptor left_descriptor(im, sequence, {im.cols/2, im.rows/2});
+    nv::Descriptor right_descriptor(im, left_descriptor.sequence(), {im.cols/2 + 1, im.rows/2});
+
+    nv::Metric m1(.8, left_descriptor, right_descriptor);
+    nv::CorrelationMetric m2(.8, left_descriptor, right_descriptor);
+
+    REQUIRE( (m1 < 0.067 && m2.coefficient() > 0.95));
+}
+
+/*
+cv::Mat shift_image(cv::Mat &img, int offsetx, int offsety){
+    cv::Mat trans_mat = (cv::Mat_<double>(2,3) << 1, 0, offsetx, 0, 1, offsety);
+    cv::warpAffine(img,img,trans_mat,img.size());
+    return img;
+}
+
+TEST_CASE("class FibonacciSequence test.", "[core]")
+{
+    auto reff_m = imread("../resources/Lenna.png", 0);    
+    auto sens_m = reff_m.clone();
+    shift_image(sens_m, 50, 0);
+
+    //imshow("refference image", reff_m);
+    //imshow("sensed image", sens_m);
+    //waitKey(0);
+
+    nv::FibonacciSequence sequence(24, 50, 1.);
+
+    float R = 25;
+    for(int reff_y = 0; reff_y < reff_m.rows; ++reff_y)
+    {
+        for(int reff_x = R; reff_x < reff_m.cols - R; ++reff_x)
+        {
+            cv::Point reff_point{reff_x, reff_y};
+        //cv::Point reff_point{reff_m.cols/2, 50};//reff_m.rows/2};
+        //cv::Point reff_point{51, 0};
+            nv::Descriptor reff_descriptor(reff_m, sequence, reff_point);
+            nv::SimpleLineWalkMatcher matcher;
+            auto sens_point = matcher.find(sens_m, reff_point, reff_descriptor);
+            std::cout << sens_point.x - reff_point.x << ": " << reff_point << std::endl;
+            if(sens_point.x != -1)
+            {
+                REQUIRE(sens_point.x - reff_point.x == 50);
+            }
+        }
+    }
+}
+*/

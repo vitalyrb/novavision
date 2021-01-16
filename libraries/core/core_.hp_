@@ -1,0 +1,180 @@
+#pragma once
+
+#include <opencv2/opencv.hpp>
+
+#include <limits>
+#include <vector>
+#include <cassert>
+#include <unordered_set>
+#include <algorithm>
+#include <initializer_list>
+
+namespace nv
+{
+using namespace cv;
+using namespace std;
+
+class Metric;
+class Sequence;
+class Descriptor;
+class Limititions;
+
+class Limititions
+{
+public:
+    bool is_valid(Point const&) const {return true;}    
+};
+
+class Sequence
+{
+protected:
+    std::vector<Point> vec_;
+public:
+    Sequence(): vec_(0){}
+    Sequence(const std::initializer_list<Point> &list): vec_(0)
+	{
+		vec_.insert(vec_.end(), list.begin(), list.end());
+	}    
+    Point const& at(size_t i) const { return vec_[i]; }
+    size_t size() const { return vec_.size(); }
+    void push_back(Point const &point) { vec_.push_back(point);}
+};
+
+class Descriptor
+{
+protected:
+	vector<uint8_t> values_;
+	Sequence sequence_;
+	friend Metric;
+public:
+	Descriptor(Mat const &image, Sequence const& sequence, Point const &point = {0, 0}, Limititions const &limititions = Limititions())
+    {
+        assert(sequence_.size() == 0);
+        for(size_t i = 0; i < sequence.size(); ++i)
+        {
+            auto seq_point = sequence.at(i);
+            auto curr_point = point + seq_point;
+            if(limititions.is_valid(curr_point))
+            {
+                values_.push_back(image.at<uint8_t>(curr_point));
+                sequence_.push_back(seq_point);
+                //std:;cout << "curr_point: " << curr_point << endl;
+            }
+        }    
+    }
+    Sequence const& sequence() const {return sequence_;}
+    vector<uint8_t> const& values() const {return values_;}
+};
+
+class Metric
+{
+protected:
+    float coefficient_;
+    float coefficient_threshold_;
+public:
+    explicit Metric(float coefficient_threshold): 
+        coefficient_(numeric_limits<float>::min()),
+        coefficient_threshold_(coefficient_threshold)
+    {
+    }
+    Metric(float coefficient_threshold, Descriptor const &left_descriptor, Descriptor const &right_descriptor): 
+        coefficient_(numeric_limits<float>::min()),
+        coefficient_threshold_(coefficient_threshold)
+    {
+        size_t count = 0;
+        for(size_t i = 0; i < left_descriptor.values_.size(); ++i)
+        {
+            if(left_descriptor.values_[i] == right_descriptor.values_[i]) count++;
+        }
+        coefficient_ = static_cast<float>(count)/left_descriptor.values_.size();  
+    }
+	operator bool() const
+    {
+        return coefficient_threshold_ <= coefficient_;
+    }
+	float coefficient() const//0.0 .. 1.0
+    {
+        return coefficient_;
+    }
+};
+
+class CorrelationMetric : public Metric
+{
+public:
+    CorrelationMetric(float coefficient_threshold, Descriptor const &left_descriptor, Descriptor const &right_descriptor): 
+            Metric(coefficient_threshold)
+    {
+        coefficient_ = correlation(&left_descriptor.values()[0], &right_descriptor.values()[0], left_descriptor.values().size());
+    }
+protected:
+     static double average(uint8_t const *v, size_t size) {
+    double sum = 0.0;
+    for (size_t i = 0; i < size; i++) {
+      sum += v[i];
+    }
+    return sum / size;
+  }
+    static float correlation(uint8_t const *v1, uint8_t const *v2, std::size_t size) {
+        double avg1 = average(v1, size);
+        double avg2 = average(v2, size);
+        auto it1 = v1;
+        auto it2 = v2;
+
+        double sum = 0.0;
+        double pow1 = 0.0;
+        double pow2 = 0.0;
+
+        for (size_t i = 0; i < size; i++, it1++, it2++) {
+            double s1 = (*it1 - avg1);
+            double s2 = (*it2 - avg2);
+            sum += s1 * s2;
+            pow1 += s1 * s1;
+            pow2 += s2 * s2;
+        }
+
+        double correlation_coeff = sum / (std::sqrt(pow1 * pow2));
+
+        return static_cast<float>(correlation_coeff);
+    }
+};
+
+class FibonacciSequence: public Sequence
+{
+    struct point_hash 
+    {
+        std::size_t operator()(const cv::Point& p) const 
+        {
+            return std::sqrt(p.x*p.x + p.y*p.y);
+        };
+    };
+    float radius_;
+public:
+    float radius() const {return radius_;}
+    FibonacciSequence(size_t number, float length, float step): radius_(length/2)
+    {
+        assert(number >= 8);
+        assert(vec_.empty());
+        Point prev_point{-1, -1};
+        auto R = length / (2 * number * step);
+        size_t count = 0;
+        for (int i = 0; count < number; i++) 
+        {
+            float fi = i * step;
+            float k = R * fi;
+            Point curr_point;
+            curr_point.x = static_cast<int>(k * cos(fi));
+            curr_point.y = static_cast<int>(k * sin(fi));
+            if(prev_point != curr_point)
+            {          
+                vec_.emplace_back(curr_point);
+                prev_point = curr_point;
+                ++count;  
+            }
+        }
+        assert(adjacent_find(vec_.begin(), vec_.end()) == vec_.end());
+        assert(vec_.size() == number);
+    }
+};
+
+
+}//namespace nv
