@@ -25,11 +25,11 @@ public:
     void create(cv::Size const& size = cv::Size{-1, -1})
     {
         cv::namedWindow(title_, cv::WINDOW_NORMAL);
-        setMouseCallback(title_, callback_func, this);
+        cv::setMouseCallback(title_, callback_func, this);
         if(size.width != -1)
         {
             resize(size);
-            m_ = cv::Mat(size, cv::CV_U8C1);
+            m_ = cv::Mat(size, CV_8UC1);
             m_ = 0;
         }
     }
@@ -55,10 +55,10 @@ public:
     {
         cv::destroyWindow(title_);
     }
-    virtual void on_lbutton_down(int x, int y){}
-    virtual void on_rbutton_down(int x, int y){}
-    virtual void on_mbutton_down(int x, int y){}
-    virtual void on_lbutton_down(int x, int y){}
+    virtual void on_lbutton_down(int, int, int){}
+    virtual void on_rbutton_down(int, int, int){}
+    virtual void on_mbutton_down(int, int, int){}
+    virtual void on_mouse_move(int, int, int){}
 protected:
     static void callback_func(int event, int x, int y, int flags, void* userdata)
     {
@@ -69,10 +69,10 @@ protected:
     {
         switch(event)
         {
-            case cv::EVENT_LBUTTONDOWN: on_lbutton_down(x, y);
-            case cv::EVENT_RBUTTONDOWN: on_rbutton_down(x, y);
-            case cv::EVENT_MBUTTONDOWN: on_mbutton_down(x, y);
-            case cv::EVENT_MOUSEMOVE:   on_lbutton_down(x, y);
+            case cv::EVENT_LBUTTONDOWN: on_lbutton_down(x, y, flags);
+            case cv::EVENT_RBUTTONDOWN: on_rbutton_down(x, y, flags);
+            case cv::EVENT_MBUTTONDOWN: on_mbutton_down(x, y, flags);
+            case cv::EVENT_MOUSEMOVE:   on_mouse_move(x, y, flags);
         };
     }
 protected:

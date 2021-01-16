@@ -10,12 +10,12 @@ using namespace std;
 class ToolWidow: public nv::ui::Form
 {
 public:
-    ToolWidow(std::string const& title, cv::Mat const &rm, cv::Mat &dm, cv::Mat &sm) nv::ui::Form(title), lm_(m), rm_(rm), dm_(dm), sm_(sm){};
-    void on_rbutton_down(int x, int y)
+    ToolWidow(std::string const& title, cv::Mat const &rm, cv::Mat &dm, cv::Mat &sm): nv::ui::Form(title), lm_(m_), rm_(rm), dm_(dm), sm_(sm){};
+    void on_rbutton_down(int x, int y, int)
     {
-        auto point = nv::find_matching_point(lm_, rm_, cvPoint(x, y));
+        nv::find_matching_point(lm_, rm_, cv::Point(x, y));
 
-        mak
+      
     }
 protected:
     cv::Mat &lm_;
