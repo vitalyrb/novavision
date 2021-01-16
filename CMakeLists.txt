@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.5)
 message(${CMAKE_CURRENT_LIST_FILE})
 
 project(novavision LANGUAGES CXX VERSION 0.0.1)
-set(CMAKE_CXX_FLAGS "-std=c++17 -g")
+set(CMAKE_CXX_FLAGS "-std=c++20 -g")
 
 add_compile_options(
     -Werror
