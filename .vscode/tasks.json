@@ -61,7 +61,7 @@
         {
             "label": "Build && Run Total",
             "type": "shell",
-            "command": "cmake .. && make -j8 && xfce4-terminal -x \"./samples/total/total\"",
+            "command": "cmake .. && make -j8 && xfce4-terminal -x \"./samples/matching_tool/matching_tool\"",
             "problemMatcher": [
                 "$gcc"
             ],
@@ -71,20 +71,21 @@
             "group": {
                 "kind": "build"
             }
-        },        
-        {
-            "label": "Build && Run Total",
-            "type": "shell",
-            "command": "cmake .. && make -j8 && xfce4-terminal -x \"./samples/total/total\"",
-            "problemMatcher": [
-                "$gcc"
-            ],
-            "options": {
-                "cwd": "${workspaceFolder}/build"
-            },
-            "group": {
-                "kind": "build"
-            }
-        }    
+        }
+        //,        
+        // {
+        //     "label": "Build && Run Total",
+        //     "type": "shell",
+        //     "command": "cmake .. && make -j8 && xfce4-terminal -x \"./samples/total/total\"",
+        //     "problemMatcher": [
+        //         "$gcc"
+        //     ],
+        //     "options": {
+        //         "cwd": "${workspaceFolder}/build"
+        //     },
+        //     "group": {
+        //         "kind": "build"
+        //     }
+        // }    
     ]
 }

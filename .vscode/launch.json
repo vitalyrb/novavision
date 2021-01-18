@@ -8,8 +8,8 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug",
-            "program": "${workspaceFolder}/build/run_unit_tests",//samples/total/total",
-            // "program": "${workspaceFolder}/build/samples/total/total",
+            //"program": "${workspaceFolder}/build/run_unit_tests",//samples/total/total",
+            "program": "${workspaceFolder}/build/samples/matching_tool/matching_tool",
             // "program": "${workspaceFolder}/build/samples/example/example",
             "args": [],
             "cwd": "${workspaceFolder}"

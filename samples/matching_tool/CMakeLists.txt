@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 
 project(matching_tool LANGUAGES CXX VERSION 0.0.1)
-set(CMAKE_CXX_FLAGS "-std=c++20 -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "-std=c++20 -g -Wall -Wextra")
 
 file(GLOB_RECURSE curr_SOURCES "*.cpp")
 
