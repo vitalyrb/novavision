@@ -17,14 +17,15 @@ metric compare(descriptor const& ld, descriptor const& rd, float threshold)
     return metric(static_cast<float>(count)/ld.size(), ld.target_point(), threshold);
 }
 
-static double average(uint8_t const *v, size_t size) {
+double average(uint8_t const *v, size_t size) {
     double sum = 0.0;
     for (size_t i = 0; i < size; i++) {
       sum += v[i];
     }
     return sum / size;
 }
-static float correlation(uint8_t const *v1, uint8_t const *v2, std::size_t size) {
+
+float correlation(uint8_t const *v1, uint8_t const *v2, std::size_t size) {
     double avg1 = average(v1, size);
     double avg2 = average(v2, size);
     auto it1 = v1;
@@ -70,6 +71,35 @@ cv::Point find_matching_point(cv::Mat const& lm, cv::Mat const& rm, cv::Point co
 
     return best_metric.target_point();
 }
+
+void draw(cv::Mat &m, nv::sequence const& s)
+{
+    for(auto const& p: s)
+    {
+        cv::Point curr{p.x + m.cols/2, p.y + m.rows/2};
+        cv::drawMarker(m, curr, cv::Scalar().all(0), cv::MARKER_DIAMOND, 3, 2);
+    }
+}
+
+
+cv::Point find_matching_point(cv::Mat const& lm, cv::Mat const& rm, cv::Point const &lp, std::function<void (metric const&, nv::descriptor const&, nv::descriptor const&)> const& each_loop)
+{
+    nv::fibonacci_sequence sequence(64, 100, 0.5);
+    nv::descriptor ld(lm, lp, sequence);
+    nv::metric best_metric(0.001, cv::Point(-1, -1));
+    for(int x = std::max(0, lp.x - 256); x < lp.x; ++x)
+    {
+        nv::descriptor rd(rm, {x, lp.y}, ld.permitted_sequence());
+
+        auto curr_metric = correlation_compare(ld, rd);
+        each_loop(curr_metric, ld, rd);
+
+        best_metric = max(best_metric, curr_metric);
+    }
+
+    return best_metric.target_point();    
+}
+
 
 void build_depth_line(cv::Mat const& lm, cv::Mat const& rm, int y1, int y2, cv::Mat &depth_map)
 {
@@ -130,5 +160,7 @@ cv::Mat build_depth_map(cv::Mat const& lm, cv::Mat const& rm)
  
     return depth_map;
 }
+
+
 
 }//namespace nv

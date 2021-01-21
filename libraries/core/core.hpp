@@ -4,6 +4,8 @@
 
 #include <vector>
 #include <cmath>
+#include <algorithm>
+#include <numeric>
 
 namespace nv
 {
@@ -40,6 +42,8 @@ public:
 protected:
 	std::vector<cv::Point> vec_;
 };
+
+void draw(cv::Mat &m, nv::sequence const& s);
 
 class descriptor
 {
@@ -135,6 +139,9 @@ public:
     }
 };
 
+double average(uint8_t const *v, size_t size);
+float correlation(uint8_t const *v1, uint8_t const *v2, std::size_t size);
+
 metric compare(nv::descriptor const& ld, nv::descriptor const& rd, float threshold = 0.9);
 metric correlation_compare(nv::descriptor const& ld, nv::descriptor const& rd, float threshold = 0.9);
 
@@ -142,6 +149,29 @@ cv::Point find_matching_point(cv::Mat const& lm, cv::Mat const& rm, cv::Point co
 
 cv::Mat build_depth_map(cv::Mat const& lm, cv::Mat const& rm);
 cv::Mat build_depth_map_multy_line(cv::Mat const& lm, cv::Mat const& rm);
+
+template<typename C>
+float correlation(C &v1, C &v2) 
+{
+    auto avg1 = std::accumulate(v1.begin(), v1.end(), 0);
+    auto avg2 = std::accumulate(v2.begin(), v2.end(), 0);
+    
+    float sum  = 0.0;
+    float pow1 = 0.0;
+    float pow2 = 0.0;
+
+    for (auto it1 = v1.begin(), it2 = v2.begin(); it1 != v1.end(); it1++, it2++) {
+        float s1 = (*it1 - avg1);
+        float s2 = (*it2 - avg2);
+        sum  += s1 * s2;
+        pow1 += s1 * s1;
+        pow2 += s2 * s2;
+    }
+
+    return static_cast<float>(sum / (std::sqrt(pow1 * pow2)));
+}
+
+cv::Point find_matching_point(cv::Mat const& lm, cv::Mat const& rm, cv::Point const &lp, std::function<void (metric const&, nv::descriptor const&, nv::descriptor const&)> const& each_loop);
 }//namespace nv
 
 
